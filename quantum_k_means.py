@@ -95,7 +95,8 @@ def distance(x,y,backend,type='angle'):
     if len(data)==1:
         return 0.0
     else:
-        return data['001']/1024.0
+        if type == 'angle': return data['001']/1024.0
+        elif type == 'probability': return data[list(data)[-1] == '1']
 
 class QuantumKMeans():
     """Quantum k-means clustering algorithm. This k-means alternative implements Quantum Machine Learning to calculate distances between data points and centroids using quantum circuits.
@@ -153,3 +154,21 @@ class QuantumKMeans():
             if self.verbose: print("Centers are", self.labels_)
             self.n_iter_ += 1
         return self
+
+    def predict(self, X, sample_weight = None):
+        """Predict the closest cluster each sample in X belongs to.
+
+        Args:
+            X: New data points to predict.
+            sample_weight: The weights for each observation in X. If None, all observations are assigned equal weight.
+
+        Returns:
+            labels: Centroid labels for each data point.
+        """
+        if sample_weight is None:
+            distances = np.asarray([[distance(point,centroid,self.backend) for _,point in X.iterrows()] for _,centroid in self.cluster_centers_.iterrows()])
+        else: 
+            weight_X = X * sample_weight
+            distances = np.asarray([[distance(point,centroid,self.backend) for _,point in weight_X.iterrows()] for _,centroid in self.cluster_centers_.iterrows()])
+        labels = np.asarray([np.argmin(distances[:,i]) for i in range(distances.shape[1])])
+        return labels
